@@ -90,14 +90,6 @@ class RobotUI:
                               command=self._reset_joints)
         reset_btn.pack(pady=(12,6), ipadx=6, ipady=4)
 
-        # Visual scale slider for cylinder size
-        scale_lbl = tk.Label(self.right_frame, text="Visual scale", bg=PASTEL_BG)
-        scale_lbl.pack(pady=(8,0))
-        self.scale_var = tk.DoubleVar(value=1.0)
-        scale_s = tk.Scale(self.right_frame, from_=0.2, to=2.0, resolution=0.1,
-                           orient="horizontal", variable=self.scale_var, bg=PASTEL_BG)
-        scale_s.pack()
-
         # Initial draw
         self._update_ui_from_model()
         self._redraw()
@@ -141,7 +133,7 @@ class RobotUI:
         self.ee_var.set(f"End effector: ({ee[0]:.3f}, {ee[1]:.3f}, {ee[2]:.3f})")
 
     # ----- Drawing helpers -----
-    def _draw_cylinder(self, T, radius=0.02, height=0.04, res_u=16, res_v=8):
+    def _draw_cylinder(self, T, radius=0.02, height=0.04, res_u=16, res_v=8, color=VIOLET_SERVO):
         # Cylinder aligned with local +Z centered at origin
         u = np.linspace(0, 2*np.pi, res_u)
         v = np.linspace(-height/2, height/2, res_v)
@@ -156,7 +148,7 @@ class RobotUI:
         Y = pts_world[1]
         Z = pts_world[2]
 
-        self.ax.plot_surface(X, Y, Z, shade=True, rcount=4, ccount=4, color=VIOLET_SERVO)
+        self.ax.plot_surface(X, Y, Z, shade=True, rcount=4, ccount=4, color=color)
 
     def _redraw(self):
         self.ax.cla()
@@ -182,28 +174,35 @@ class RobotUI:
                 self.ax.plot([origin[0], y_axis[0]], [origin[1], y_axis[1]], [origin[2], y_axis[2]], color='g')
                 self.ax.plot([origin[0], z_axis[0]], [origin[1], z_axis[1]], [origin[2], z_axis[2]], color='b')
 
-        # Draw servo cylinders using T_with_offsets (visual-only offsets)
-        servo_frames = self.model.T_with_offsets()
-        visual_scale = float(self.scale_var.get())
-        avg_link = max(0.05, np.mean([abs(r[2]) for r in self.model.dh])) / 10.0
-        radius = 0.03 * visual_scale
-        height = 0.06 * visual_scale
-
-        for T in servo_frames[:-1]:
-            self._draw_cylinder(T, radius=radius, height=height)
+        # Draw small light purple cylinders at each joint (using DH frames)
+        joint_radius = 0.8
+        joint_height = 1.2
+        for T in frames[:-1]:  # Skip the end effector
+            self._draw_cylinder(T, radius=joint_radius, height=joint_height, color="#D4B5F0")
 
         # Draw end effector point
         ee = origins[-1]
         self.ax.scatter([ee[0]], [ee[1]], [ee[2]], color=ACCENT, s=40)
 
-        # Adjust axes limits to keep the robot visible
+        # Adjust axes limits with origin (0,0,0) centered at bottom floor
         all_x = xs
         all_y = ys
         all_z = zs
-        pad = 0.1
-        self.ax.set_xlim(min(all_x)-pad, max(all_x)+pad)
-        self.ax.set_ylim(min(all_y)-pad, max(all_y)+pad)
-        self.ax.set_zlim(min(all_z)-pad, max(all_z)+pad)
+        
+        # Calculate the maximum extent from origin
+        max_extent = max(
+            max(abs(min(all_x)), abs(max(all_x))),
+            max(abs(min(all_y)), abs(max(all_y))),
+            max(all_z)  # Only consider positive Z for height
+        )
+        
+        # Add padding to make arm appear smaller in frame
+        plot_range = max_extent * 1.35  # Reduced from 1.5 to make arm ~10% bigger
+        
+        # Center X and Y around 0, Z starts at 0 (floor)
+        self.ax.set_xlim(-plot_range, plot_range)
+        self.ax.set_ylim(-plot_range, plot_range)
+        self.ax.set_zlim(0, plot_range * 2)  # Z goes from 0 (floor) upward
 
         self.canvas.draw()
 
