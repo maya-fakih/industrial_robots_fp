@@ -111,6 +111,7 @@ class RobotUI:
 
     def _reset_joints(self):
         self.model.joint_angles[:] = 0.0
+        self.model.joint_angles[1] = np.radians(90)  # Set 2nd joint to 90 degrees
         self._update_ui_from_model()
         self._redraw()
 
@@ -167,12 +168,12 @@ class RobotUI:
         if self.show_frames.get():
             for T in frames:
                 origin = T @ np.array([0,0,0,1])
-                x_axis = T @ np.array([0.05,0,0,1])
-                y_axis = T @ np.array([0,0.05,0,1])
-                z_axis = T @ np.array([0,0,0.05,1])
-                self.ax.plot([origin[0], x_axis[0]], [origin[1], x_axis[1]], [origin[2], x_axis[2]], color='r')
-                self.ax.plot([origin[0], y_axis[0]], [origin[1], y_axis[1]], [origin[2], y_axis[2]], color='g')
-                self.ax.plot([origin[0], z_axis[0]], [origin[1], z_axis[1]], [origin[2], z_axis[2]], color='b')
+                x_axis = T @ np.array([2.5,0,0,1])
+                y_axis = T @ np.array([0,2.5,0,1])
+                z_axis = T @ np.array([0,0,2.5,1])
+                self.ax.plot([origin[0], x_axis[0]], [origin[1], x_axis[1]], [origin[2], x_axis[2]], color='r', linewidth=2)
+                self.ax.plot([origin[0], y_axis[0]], [origin[1], y_axis[1]], [origin[2], y_axis[2]], color='g', linewidth=2)
+                self.ax.plot([origin[0], z_axis[0]], [origin[1], z_axis[1]], [origin[2], z_axis[2]], color='b', linewidth=2)
 
         # Draw small light purple cylinders at each joint (using DH frames)
         joint_radius = 0.8
@@ -197,7 +198,7 @@ class RobotUI:
         )
         
         # Add padding to make arm appear smaller in frame
-        plot_range = max_extent * 1.35  # Reduced from 1.5 to make arm ~10% bigger
+        plot_range = max_extent * 0.65  # Reduced to make arm bigger and fill more of the view
         
         # Center X and Y around 0, Z starts at 0 (floor)
         self.ax.set_xlim(-plot_range, plot_range)
