@@ -4,5 +4,9 @@ from robot_ui import RobotUI
 
 if __name__ == "__main__":
     model = RobotModel()
-    ui = RobotUI(model)
+
+    # <<< FIX: Add your Arduino port here
+    SERIAL_PORT = "COM3"   # or COM4, COM5 ... whatever your Arduino uses
+
+    ui = RobotUI(model, SERIAL_PORT)
     ui.run()
