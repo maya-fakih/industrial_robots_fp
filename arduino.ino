@@ -156,6 +156,18 @@ void processPythonLine(const char* lineCStr)
     return;
   }
 
+  if (strcmp(lineCStr, "CMD,SAVE") == 0) {
+    SavePosition_Flag = true;
+    Serial.println("Python triggered: Save Position");
+    return;
+  }
+
+  if (strcmp(lineCStr, "CMD,EXEC") == 0) {
+      ExecuteSequence_Flag = true;
+      Serial.println("Python triggered: Execute Sequence");
+      return;
+  }
+
   String line = String(lineCStr);
   line.trim();
 

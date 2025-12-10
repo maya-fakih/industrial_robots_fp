@@ -27,7 +27,7 @@ class RobotUI:
         #update mode on close
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
         # ----- Arduino offsets (joints 1-4) -----
-        self.joint_offsets = [95, 0, 200, 270, 0, 0]  # joints 5-6 manual
+        self.joint_offsets = [5, -3, 18, 89, 0, 0]  # joints 5-6 manual
 
         # ----- Frames layout -----
         self.left_frame = tk.Frame(self.root, bg=PASTEL_BG)
@@ -87,6 +87,27 @@ class RobotUI:
                              command=lambda j=i: self._adjust_joint(j, +1))
             plus.pack(side="left", padx=(6,0))
 
+                # ---- Save & Execute buttons under joint controls ----
+        save_btn = tk.Button(
+            self.controls_container,
+            text="Save Position",
+            bg=PRIMARY_DEEP,
+            fg="white",
+            width=16,
+            command=self._send_save
+        )
+        save_btn.pack(pady=(12,4))
+
+        exec_btn = tk.Button(
+            self.controls_container,
+            text="Execute Sequence",
+            bg=PRIMARY_DEEP,
+            fg="white",
+            width=16,
+            command=self._send_exec
+        )
+        exec_btn.pack(pady=(4,12))
+
         reset_btn = tk.Button(self.right_frame, text="Reset joints", bg=PRIMARY_DEEP, fg="white",
                               command=self._reset_joints)
         reset_btn.pack(pady=(12,6), ipadx=6, ipady=4)
@@ -118,7 +139,7 @@ class RobotUI:
         self._send_to_robot()  # immediate update to Arduino
 
     def _reset_joints(self):
-        defaults = [0,90,-90,-90,0,0]
+        defaults = [90,90,90,90,0,0]
         self.model.joint_angles = np.radians(defaults)
         self._update_ui_from_model()
         self._redraw()
@@ -181,19 +202,38 @@ class RobotUI:
         self.ax.set_zlim(0, plot_range * 2)
         self.canvas.draw()
 
+    def _send_save(self):
+        try:
+            self.ser.write(b"CMD,SAVE\n")
+        except Exception as e:
+            print("Save send error:", e)
+
+    def _send_exec(self):
+        try:
+            self.ser.write(b"CMD,EXEC\n")
+        except Exception as e:
+            print("Exec send error:", e)
+
     # ----- Send angles to Arduino immediately -----
     def _send_to_robot(self):
         # Convert model angles to degrees
         angles_deg = [np.degrees(a) for a in self.model.joint_angles]
 
-        # Apply offsets only to joints 0–3 (first 4)
-        first_four = [angles_deg[i] + self.joint_offsets[i] for i in range(4)]
+        # --- Segment 1: Joint 0 (No Negation) ---
+        # Angle 0: angle_0 + offset_0
+        joint_zero = [angles_deg[0] + self.joint_offsets[0]]
 
-        # Always append 0, 0 for joints 5–6
+        # --- Segment 2: Joints 1, 2, 3 (Negation) ---
+        # Angles 1-3: -angle_i + offset_i for i in [1, 2, 3]
+        joints_one_to_three = [angles_deg[i] + self.joint_offsets[i] for i in range(1, 4)]
+        
+        # --- Segment 3: Joints 4 and 5 (Append Zeros) ---
+        # Angles 4-5: 0, 0 (as in the original code, but they correspond to indices 4 and 5)
         last_two = [0, 0]
 
         # Build final message
-        all_six = first_four + last_two
+        # 1 angle (joint 0) + 3 angles (joints 1-3) + 2 zeros (joints 4-5) = 6 values total
+        all_six = joint_zero + joints_one_to_three + last_two
 
         message = "D," + ",".join([str(int(a)) for a in all_six]) + "\n"
         self.ser.write(message.encode())
