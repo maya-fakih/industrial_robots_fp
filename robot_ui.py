@@ -76,7 +76,7 @@ class RobotUI:
             row.pack(pady=4)
 
             minus = tk.Button(row, text="-", bg=ACCENT, fg="white", width=3,
-                              command=lambda j=i: self._adjust_joint(j, -1))
+                              command=lambda j=i: self._adjust_joint(j, -5))
             minus.pack(side="left", padx=(0,6))
 
             lbl = tk.Label(row, text="0.0°", width=10, bg=PASTEL_BG)
@@ -84,7 +84,7 @@ class RobotUI:
             self.joint_val_labels.append(lbl)
 
             plus = tk.Button(row, text="+", bg=ACCENT, fg="white", width=3,
-                             command=lambda j=i: self._adjust_joint(j, +1))
+                             command=lambda j=i: self._adjust_joint(j, +5))
             plus.pack(side="left", padx=(6,0))
 
                 # ---- Save & Execute buttons under joint controls ----
